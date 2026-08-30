@@ -17,3 +17,15 @@ An absent, revoked, or expired grant resolves to `granted = false`. The Plugin
 does not inspect Usage Meter aggregates, infer plans, or mutate Access Control.
 Grant expiry timestamps must resolve to whole microseconds so exact retries are
 stable across PostgreSQL round trips.
+
+## Release safety
+
+All three crates are publishable so product Plugins can depend on the portable
+Capability contracts without a Git source identity. The release workflow is
+manually gated: a live run requires `live=true` plus `confirm=publish` on
+`main`, and uses crates.io Trusted Publishing through GitHub OIDC.
+
+For the first release, allocate the two Capability crate names before the
+PostgreSQL Plugin so Cargo can verify the packaged dependency graph. Configure
+each crates.io Trusted Publisher for owner `LioRael`, repository
+`lenso-entitlements-plugin`, workflow `release-plz.yml`, with no environment.
