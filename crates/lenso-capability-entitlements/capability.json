@@ -1,0 +1,15 @@
+{
+  "id": "lenso.entitlements@1",
+  "version": "1.0.0",
+  "portable": true,
+  "cross_lane_transfer": true,
+  "operations": [
+    {
+      "name": "resolve_entitlement",
+      "interaction": "request",
+      "request_schema": "schemas/resolve-entitlement-request.schema.json",
+      "response_schema": "schemas/resolve-entitlement-response.schema.json",
+      "domain_error_schema": "schemas/resolve-entitlement-error.schema.json"
+    }
+  ]
+}

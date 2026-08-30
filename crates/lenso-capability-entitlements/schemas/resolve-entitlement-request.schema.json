@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["scope_kind", "scope_id", "subject", "feature"],
+  "properties": {
+    "scope_kind": {
+      "type": "string"
+    },
+    "scope_id": {
+      "type": "string"
+    },
+    "subject": {
+      "type": "string"
+    },
+    "feature": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "title": "ResolveEntitlementRequest"
+}

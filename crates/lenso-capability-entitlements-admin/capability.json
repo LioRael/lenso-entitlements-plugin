@@ -1,0 +1,22 @@
+{
+  "id": "lenso.entitlements-admin@1",
+  "version": "1.0.0",
+  "portable": true,
+  "cross_lane_transfer": true,
+  "operations": [
+    {
+      "name": "put_grant",
+      "interaction": "request",
+      "request_schema": "schemas/put-grant-request.schema.json",
+      "response_schema": "schemas/put-grant-response.schema.json",
+      "domain_error_schema": "schemas/put-grant-error.schema.json"
+    },
+    {
+      "name": "revoke_grant",
+      "interaction": "request",
+      "request_schema": "schemas/revoke-grant-request.schema.json",
+      "response_schema": "schemas/revoke-grant-response.schema.json",
+      "domain_error_schema": "schemas/revoke-grant-error.schema.json"
+    }
+  ]
+}
