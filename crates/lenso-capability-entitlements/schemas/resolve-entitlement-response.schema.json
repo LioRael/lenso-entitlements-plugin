@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["granted", "grant_id", "limit", "policy_revision"],
+  "properties": {
+    "granted": {
+      "type": "boolean"
+    },
+    "grant_id": {
+      "$ref": "#/$defs/Nullable_string"
+    },
+    "limit": {
+      "$ref": "#/$defs/Nullable_string",
+      "description": "Positive base-10 int64 encoded as a portable string."
+    },
+    "policy_revision": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "Nullable_string": {
+      "type": ["string", "null"]
+    }
+  },
+  "title": "ResolveEntitlementResponse"
+}

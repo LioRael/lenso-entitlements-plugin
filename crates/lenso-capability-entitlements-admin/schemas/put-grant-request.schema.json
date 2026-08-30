@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "scope_kind",
+    "scope_id",
+    "subject",
+    "feature",
+    "limit",
+    "expires_at"
+  ],
+  "properties": {
+    "scope_kind": {
+      "type": "string"
+    },
+    "scope_id": {
+      "type": "string"
+    },
+    "subject": {
+      "type": "string"
+    },
+    "feature": {
+      "type": "string"
+    },
+    "limit": {
+      "$ref": "#/$defs/Nullable_string",
+      "description": "Positive base-10 int64 encoded as a portable string."
+    },
+    "expires_at": {
+      "format": "date-time",
+      "$ref": "#/$defs/Nullable_string",
+      "description": "RFC 3339 timestamp that resolves to a whole microsecond."
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "Nullable_string": {
+      "type": ["string", "null"]
+    }
+  },
+  "title": "PutGrantRequest"
+}
