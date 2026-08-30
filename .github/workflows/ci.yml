@@ -35,3 +35,7 @@ jobs:
       - run: cargo check --locked --workspace --all-targets
       - run: cargo test --locked --workspace -- --include-ignored --test-threads=1
       - run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - name: Verify publishable Capability packages
+        run: |
+          cargo package --locked -p lenso-capability-entitlements
+          cargo package --locked -p lenso-capability-entitlements-admin
