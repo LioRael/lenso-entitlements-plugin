@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["grants", "next_cursor", "policy_revision"],
+  "properties": {
+    "grants": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ListGrantsResponseGrantsItem"
+      }
+    },
+    "next_cursor": {
+      "$ref": "#/$defs/Nullable_string"
+    },
+    "policy_revision": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "ListGrantsResponseGrantsItem": {
+      "type": "object",
+      "required": [
+        "grant_id",
+        "subject",
+        "feature",
+        "limit",
+        "expires_at",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "grant_id": {
+          "type": "string"
+        },
+        "subject": {
+          "type": "string"
+        },
+        "feature": {
+          "type": "string"
+        },
+        "limit": {
+          "$ref": "#/$defs/Nullable_string",
+          "description": "Positive base-10 int64 encoded as a portable string."
+        },
+        "expires_at": {
+          "format": "date-time",
+          "$ref": "#/$defs/Nullable_string"
+        },
+        "status": {
+          "$ref": "#/$defs/ListGrantsResponseGrantsItemStatus"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ListGrantsResponseGrantsItemStatus": {
+      "type": "string",
+      "enum": ["active", "expired", "revoked"]
+    },
+    "Nullable_string": {
+      "type": ["string", "null"]
+    }
+  },
+  "title": "ListGrantsResponse"
+}

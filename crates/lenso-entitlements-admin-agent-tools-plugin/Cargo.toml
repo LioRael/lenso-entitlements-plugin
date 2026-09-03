@@ -1,0 +1,24 @@
+[package]
+name = "lenso-entitlements-admin-agent-tools-plugin"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish = false
+repository.workspace = true
+description = "Agent Tool adapter for Lenso Entitlements administration."
+
+[package.metadata.lenso]
+plugin-id = "lenso.entitlements.admin.agent-tools"
+root-slot = "tool-providers"
+
+[dependencies]
+futures.workspace = true
+lenso.workspace = true
+lenso-capability-agent-tool-provider.workspace = true
+lenso-capability-entitlements-admin = { path = "../lenso-capability-entitlements-admin", version = "0.2.0" }
+lenso-kernel.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[lints]
+workspace = true

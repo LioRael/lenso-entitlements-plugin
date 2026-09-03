@@ -12,8 +12,10 @@ use lenso_capability_entitlements::{
 };
 use lenso_capability_entitlements_admin as admin;
 use lenso_capability_entitlements_admin::{
-    EntitlementsAdminPutGrant, EntitlementsAdminRevokeGrant, PutGrantError, PutGrantRequest,
-    PutGrantResponse, RevokeGrantError, RevokeGrantRequest, RevokeGrantResponse,
+    EntitlementsAdminListGrants, EntitlementsAdminPutGrant, EntitlementsAdminRevokeGrant,
+    ListGrantsError, ListGrantsRequest, ListGrantsRequestStatus, ListGrantsResponse,
+    ListGrantsResponseGrantsItem, ListGrantsResponseGrantsItemStatus, PutGrantError,
+    PutGrantRequest, PutGrantResponse, RevokeGrantError, RevokeGrantRequest, RevokeGrantResponse,
 };
 use lenso_capability_secrets as secrets;
 use lenso_capability_secrets::{ResolveRequest, SecretsClient, SecretsInvocationError};
@@ -165,6 +167,142 @@ impl EntitlementsPlugin {
                 .resolve_callers
                 .iter()
                 .any(|allowed| allowed == caller)
+        })
+    }
+
+    #[allow(clippy::needless_pass_by_value, clippy::too_many_lines)]
+    fn list_grants(
+        &self,
+        context: InvocationContext,
+        request: ListGrantsRequest,
+    ) -> NativeRequestFuture<EntitlementsAdminListGrants> {
+        let authorized = self.admin_authorized(&context);
+        let valid = valid_dimension(&request.scope_kind)
+            && valid_name(&request.scope_id)
+            && request.subject.as_deref().is_none_or(valid_name)
+            && request.feature.as_deref().is_none_or(valid_dimension)
+            && (1..=200).contains(&request.limit)
+            && request.cursor.as_deref().is_none_or(valid_name);
+        let prepared = self.prepared();
+        Box::pin(async move {
+            if !authorized {
+                return Ok(Err(ListGrantsError::Forbidden));
+            }
+            if !valid {
+                return Ok(Err(ListGrantsError::InvalidQuery));
+            }
+            let prepared = prepared?;
+            let mut transaction = prepared.postgres.pool().begin().await.map_err(|source| {
+                runtime(EntitlementsError::Database {
+                    operation: "begin entitlement grant list",
+                    source,
+                })
+            })?;
+            sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+                .execute(&mut *transaction)
+                .await
+                .map_err(|source| {
+                    runtime(EntitlementsError::Database {
+                        operation: "establish entitlement grant list snapshot",
+                        source,
+                    })
+                })?;
+            let policy_revision = sqlx::query_scalar::<_, i64>(
+                "SELECT policy_revision FROM entitlement_scopes WHERE scope_kind=$1 AND scope_id=$2",
+            )
+            .bind(&request.scope_kind)
+            .bind(&request.scope_id)
+            .fetch_optional(&mut *transaction)
+            .await
+            .map_err(|source| {
+                runtime(EntitlementsError::Database {
+                    operation: "read entitlement policy revision",
+                    source,
+                })
+            })?
+            .unwrap_or(0);
+            let requested_status = match request.status {
+                ListGrantsRequestStatus::Active => "active",
+                ListGrantsRequestStatus::Expired => "expired",
+                ListGrantsRequestStatus::Revoked => "revoked",
+                ListGrantsRequestStatus::All => "all",
+            };
+            let rows = sqlx::query(
+                "SELECT grant_id,subject,feature_key,limit_value,expires_at,created_at,updated_at,CASE WHEN revoked_at IS NOT NULL THEN 'revoked' WHEN expires_at IS NOT NULL AND expires_at<=transaction_timestamp() THEN 'expired' ELSE 'active' END AS effective_status FROM entitlement_grants WHERE scope_kind=$1 AND scope_id=$2 AND ($3::text IS NULL OR subject=$3) AND ($4::text IS NULL OR feature_key=$4) AND ($5='all' OR ($5='active' AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>transaction_timestamp())) OR ($5='expired' AND revoked_at IS NULL AND expires_at<=transaction_timestamp()) OR ($5='revoked' AND revoked_at IS NOT NULL)) AND ($6::text IS NULL OR grant_id>$6) ORDER BY grant_id LIMIT $7",
+            )
+            .bind(&request.scope_kind)
+            .bind(&request.scope_id)
+            .bind(&request.subject)
+            .bind(&request.feature)
+            .bind(requested_status)
+            .bind(&request.cursor)
+            .bind(request.limit + 1)
+            .fetch_all(&mut *transaction)
+            .await
+            .map_err(|source| {
+                runtime(EntitlementsError::Database {
+                    operation: "list entitlement grants",
+                    source,
+                })
+            })?;
+            let page_size = usize::try_from(request.limit)
+                .expect("validated grant list limit must fit into usize");
+            let has_more = rows.len() > page_size;
+            let mut grants = Vec::with_capacity(rows.len().min(page_size));
+            for row in rows.into_iter().take(page_size) {
+                let effective_status: String =
+                    row.try_get("effective_status").map_err(|source| {
+                        runtime(EntitlementsError::Database {
+                            operation: "decode entitlement grant status",
+                            source,
+                        })
+                    })?;
+                let status = match effective_status.as_str() {
+                    "active" => ListGrantsResponseGrantsItemStatus::Active,
+                    "expired" => ListGrantsResponseGrantsItemStatus::Expired,
+                    "revoked" => ListGrantsResponseGrantsItemStatus::Revoked,
+                    _ => {
+                        return Err(RuntimeFailure::PluginFailure {
+                            detail: "database returned an unknown entitlement grant status"
+                                .to_owned(),
+                        });
+                    }
+                };
+                let expires_at: Option<OffsetDateTime> =
+                    row.try_get("expires_at").map_err(|source| {
+                        runtime(EntitlementsError::Database {
+                            operation: "decode entitlement grant expiry",
+                            source,
+                        })
+                    })?;
+                grants.push(ListGrantsResponseGrantsItem {
+                    grant_id: row.try_get("grant_id").map_err(database_decode)?,
+                    subject: row.try_get("subject").map_err(database_decode)?,
+                    feature: row.try_get("feature_key").map_err(database_decode)?,
+                    limit: row
+                        .try_get::<Option<i64>, _>("limit_value")
+                        .map_err(database_decode)?
+                        .map(|value| value.to_string()),
+                    expires_at: expires_at.map(format_time).transpose()?,
+                    status,
+                    created_at: format_time(row.try_get("created_at").map_err(database_decode)?)?,
+                    updated_at: format_time(row.try_get("updated_at").map_err(database_decode)?)?,
+                });
+            }
+            transaction.commit().await.map_err(|source| {
+                runtime(EntitlementsError::Database {
+                    operation: "commit entitlement grant list",
+                    source,
+                })
+            })?;
+            let next_cursor = has_more
+                .then(|| grants.last().map(|grant| grant.grant_id.clone()))
+                .flatten();
+            Ok(Ok(ListGrantsResponse {
+                grants,
+                next_cursor,
+                policy_revision,
+            }))
         })
     }
 
@@ -513,12 +651,27 @@ enum EntitlementsError {
     },
     #[error("random source unavailable")]
     Random,
+    #[error("timestamp could not be represented as RFC 3339")]
+    Timestamp(#[source] time::error::Format),
 }
 
 fn runtime(error: impl fmt::Display) -> RuntimeFailure {
     RuntimeFailure::PluginFailure {
         detail: error.to_string(),
     }
+}
+
+fn database_decode(source: sqlx::Error) -> RuntimeFailure {
+    runtime(EntitlementsError::Database {
+        operation: "decode entitlement grant",
+        source,
+    })
+}
+
+fn format_time(value: OffsetDateTime) -> Result<String, RuntimeFailure> {
+    value
+        .format(&Rfc3339)
+        .map_err(|source| runtime(EntitlementsError::Timestamp(source)))
 }
 
 fn random_id(prefix: &str) -> Result<String, EntitlementsError> {
@@ -653,6 +806,24 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(result, Err(PutGrantError::Forbidden));
+
+        let result = plugin()
+            .list_grants(
+                InvocationContext::new(1, None, CancellationToken::new())
+                    .with_caller_instance("untrusted"),
+                ListGrantsRequest {
+                    scope_kind: "organization".to_owned(),
+                    scope_id: "org_acme".to_owned(),
+                    subject: None,
+                    feature: None,
+                    status: ListGrantsRequestStatus::All,
+                    limit: 50,
+                    cursor: None,
+                },
+            )
+            .await
+            .unwrap();
+        assert_eq!(result, Err(ListGrantsError::Forbidden));
     }
 
     #[tokio::test]
@@ -714,6 +885,7 @@ mod tests {
 
     #[tokio::test]
     #[ignore = "requires LENSO_POSTGRES_TEST_URL"]
+    #[allow(clippy::too_many_lines)]
     async fn grant_revision_and_default_deny_are_transactional() {
         let database_url =
             std::env::var("LENSO_POSTGRES_TEST_URL").expect("LENSO_POSTGRES_TEST_URL is required");
@@ -752,6 +924,30 @@ mod tests {
             .unwrap();
         assert!(!repeated.changed);
         assert_eq!(repeated.policy_revision, 1);
+        let listed = plugin
+            .list_grants(
+                admin_context.clone(),
+                ListGrantsRequest {
+                    scope_kind: "organization".to_owned(),
+                    scope_id: "org_acme".to_owned(),
+                    subject: None,
+                    feature: None,
+                    status: ListGrantsRequestStatus::Active,
+                    limit: 50,
+                    cursor: None,
+                },
+            )
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(listed.policy_revision, 1);
+        assert_eq!(listed.grants.len(), 1);
+        assert_eq!(listed.grants[0].grant_id, first.grant_id);
+        assert_eq!(
+            listed.grants[0].status,
+            ListGrantsResponseGrantsItemStatus::Active
+        );
+        assert!(listed.next_cursor.is_none());
         let resolved = plugin
             .resolve_entitlement(
                 InvocationContext::new(2, None, CancellationToken::new())
@@ -770,9 +966,9 @@ mod tests {
         assert_eq!(resolved.limit.as_deref(), Some("10"));
         let revoked = plugin
             .revoke_grant(
-                admin_context,
+                admin_context.clone(),
                 RevokeGrantRequest {
-                    grant_id: first.grant_id,
+                    grant_id: first.grant_id.clone(),
                 },
             )
             .await
@@ -780,6 +976,28 @@ mod tests {
             .unwrap();
         assert!(revoked.changed);
         assert_eq!(revoked.policy_revision, 2);
+        let listed = plugin
+            .list_grants(
+                admin_context,
+                ListGrantsRequest {
+                    scope_kind: "organization".to_owned(),
+                    scope_id: "org_acme".to_owned(),
+                    subject: None,
+                    feature: None,
+                    status: ListGrantsRequestStatus::Revoked,
+                    limit: 50,
+                    cursor: None,
+                },
+            )
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(listed.policy_revision, 2);
+        assert_eq!(listed.grants.len(), 1);
+        assert_eq!(
+            listed.grants[0].status,
+            ListGrantsResponseGrantsItemStatus::Revoked
+        );
         let denied = plugin
             .resolve_entitlement(
                 InvocationContext::new(3, None, CancellationToken::new())
