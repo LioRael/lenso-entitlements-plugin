@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "crates/lenso-capability-entitlements",
     "crates/lenso-capability-entitlements-admin",
+    "crates/lenso-entitlements-admin-agent-tools-plugin",
     "crates/lenso-entitlements-postgres-plugin",
 ]
 
@@ -17,6 +18,7 @@ rust-version = "1.94"
 futures = "0.3"
 getrandom = "0.4"
 lenso = "0.5.0"
+lenso-capability-agent-tool-provider = "0.1.0"
 lenso-capability-secrets = "0.1.1"
 lenso-contract-authoring = "0.1.1"
 lenso-contract-runtime = "0.1.3"

@@ -8,8 +8,10 @@ The first slice provides:
 
 - `lenso.entitlements@1` to resolve one exact scope, subject, and feature only
   for explicitly admitted target caller instances;
-- `lenso.entitlements-admin@1` to put or revoke grants from explicitly admitted
-  caller instances;
+- `lenso.entitlements-admin@1` to list, put, or revoke grants from explicitly
+  admitted caller instances;
+- `lenso.entitlements.admin.agent-tools` as a private, removable Console Agent
+  adapter over that exact Admin capability;
 - private PostgreSQL state with monotonic per-scope policy revisions; and
 - explicit operator-managed schema setup and upgrades.
 
@@ -20,8 +22,9 @@ stable across PostgreSQL round trips.
 
 ## Release safety
 
-All three crates are publishable so product Plugins can depend on the portable
-Capability contracts without a Git source identity. The release workflow is
+The two Capability crates and PostgreSQL Plugin are publishable so product
+Plugins can depend on the portable Capability contracts without a Git source
+identity. The Agent Tool adapter remains private. The release workflow is
 manually gated: a live run requires `live=true` plus `confirm=publish` on
 `main`, and uses crates.io Trusted Publishing through GitHub OIDC.
 

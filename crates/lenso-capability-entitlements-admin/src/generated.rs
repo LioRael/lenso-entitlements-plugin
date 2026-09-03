@@ -5,7 +5,7 @@ use lenso_kernel::{InvocationContext, NativeRequestEndpoint, NativeRequestFuture
 
 use lenso_plugin_authoring::{BoundCapabilityClient, CapabilityClient, CapabilityClientMany};
 pub const CAPABILITY_ID: &str = "lenso.entitlements-admin@1";
-pub const DESCRIPTOR_VERSION: &str = "1.0.0";
+pub const DESCRIPTOR_VERSION: &str = "1.1.0";
 pub const PORTABLE: bool = true;
 pub const CROSS_LANE_TRANSFER: bool = true;
 pub const ENTITLEMENTS_ADMIN_CAPABILITY_ID: &str = CAPABILITY_ID;
@@ -13,21 +13,117 @@ pub const ENTITLEMENTS_ADMIN_DESCRIPTOR_VERSION: &str = DESCRIPTOR_VERSION;
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! __lenso_provided_entitlements_admin { () => { "{\"capability_id\":\"lenso.entitlements-admin@1\",\"descriptor_version\":\"1.0.0\",\"operations\":[\"put_grant\",\"revoke_grant\"],\"operation_kinds\":{},\"default_admission\":{\"queue_capacity\":0,\"max_concurrency\":1},\"operation_admissions\":{},\"event_admission\":null,\"cross_lane_transfer\":true}" }; }
+macro_rules! __lenso_provided_entitlements_admin { () => { "{\"capability_id\":\"lenso.entitlements-admin@1\",\"descriptor_version\":\"1.1.0\",\"operations\":[\"list_grants\",\"put_grant\",\"revoke_grant\"],\"operation_kinds\":{},\"default_admission\":{\"queue_capacity\":0,\"max_concurrency\":1},\"operation_admissions\":{},\"event_admission\":null,\"cross_lane_transfer\":true}" }; }
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! __lenso_required_entitlements_admin_client { () => { "{\"capability_id\":\"lenso.entitlements-admin@1\",\"descriptor_version\":\"1.0.0\",\"cardinality\":\"one\"}" }; }
+macro_rules! __lenso_required_entitlements_admin_client { () => { "{\"capability_id\":\"lenso.entitlements-admin@1\",\"descriptor_version\":\"1.1.0\",\"cardinality\":\"one\"}" }; }
 
 #[doc(hidden)]
 #[macro_export]
-macro_rules! __lenso_required_many_entitlements_admin_client { () => { "{\"capability_id\":\"lenso.entitlements-admin@1\",\"descriptor_version\":\"1.0.0\",\"cardinality\":\"many\"}" }; }
+macro_rules! __lenso_required_many_entitlements_admin_client { () => { "{\"capability_id\":\"lenso.entitlements-admin@1\",\"descriptor_version\":\"1.1.0\",\"cardinality\":\"many\"}" }; }
 
+pub const LIST_GRANTS_OPERATION: &str = "list_grants";
 pub const PUT_GRANT_OPERATION: &str = "put_grant";
 pub const REVOKE_GRANT_OPERATION: &str = "revoke_grant";
 
 pub use lenso_contract_runtime::{Timestamp, UnknownDomainError};
 use lenso_contract_runtime::{decode_portable_json, encode_portable_json};
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct ListGrantsRequest {
+    #[serde(rename = "cursor")]
+    #[serde(deserialize_with = "lenso_contract_runtime::serde::deserialize_required")]
+    pub cursor: Option<String>,
+    #[serde(rename = "feature")]
+    #[serde(deserialize_with = "lenso_contract_runtime::serde::deserialize_required")]
+    pub feature: Option<String>,
+    #[serde(rename = "limit")]
+    #[serde(deserialize_with = "lenso_contract_runtime::serde::deserialize_required")]
+    pub limit: i64,
+    #[serde(rename = "scope_id")]
+    #[serde(deserialize_with = "lenso_contract_runtime::serde::deserialize_required")]
+    pub scope_id: String,
+    #[serde(rename = "scope_kind")]
+    #[serde(deserialize_with = "lenso_contract_runtime::serde::deserialize_required")]
+    pub scope_kind: String,
+    #[serde(rename = "status")]
+    #[serde(deserialize_with = "lenso_contract_runtime::serde::deserialize_required")]
+    pub status: ListGrantsRequestStatus,
+    #[serde(rename = "subject")]
+    #[serde(deserialize_with = "lenso_contract_runtime::serde::deserialize_required")]
+    pub subject: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ListGrantsRequestStatus {
+    #[serde(rename = "active")]
+    Active,
+    #[serde(rename = "expired")]
+    Expired,
+    #[serde(rename = "revoked")]
+    Revoked,
+    #[serde(rename = "all")]
+    All,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct ListGrantsResponse {
+    #[serde(rename = "grants")]
+    #[serde(deserialize_with = "lenso_contract_runtime::serde::deserialize_required")]
+    pub grants: Vec<ListGrantsResponseGrantsItem>,
+    #[serde(rename = "next_cursor")]
+    #[serde(deserialize_with = "lenso_contract_runtime::serde::deserialize_required")]
+    pub next_cursor: Option<String>,
+    #[serde(rename = "policy_revision")]
+    #[serde(deserialize_with = "lenso_contract_runtime::serde::deserialize_required")]
+    pub policy_revision: i64,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct ListGrantsResponseGrantsItem {
+    #[serde(rename = "created_at")]
+    #[serde(deserialize_with = "lenso_contract_runtime::serde::deserialize_required")]
+    pub created_at: Timestamp,
+    #[serde(rename = "expires_at")]
+    #[serde(deserialize_with = "lenso_contract_runtime::serde::deserialize_required")]
+    pub expires_at: Option<Timestamp>,
+    #[serde(rename = "feature")]
+    #[serde(deserialize_with = "lenso_contract_runtime::serde::deserialize_required")]
+    pub feature: String,
+    #[serde(rename = "grant_id")]
+    #[serde(deserialize_with = "lenso_contract_runtime::serde::deserialize_required")]
+    pub grant_id: String,
+    #[serde(rename = "limit")]
+    #[serde(deserialize_with = "lenso_contract_runtime::serde::deserialize_required")]
+    pub limit: Option<String>,
+    #[serde(rename = "status")]
+    #[serde(deserialize_with = "lenso_contract_runtime::serde::deserialize_required")]
+    pub status: ListGrantsResponseGrantsItemStatus,
+    #[serde(rename = "subject")]
+    #[serde(deserialize_with = "lenso_contract_runtime::serde::deserialize_required")]
+    pub subject: String,
+    #[serde(rename = "updated_at")]
+    #[serde(deserialize_with = "lenso_contract_runtime::serde::deserialize_required")]
+    pub updated_at: Timestamp,
+}
+
+#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+pub enum ListGrantsResponseGrantsItemStatus {
+    #[serde(rename = "active")]
+    Active,
+    #[serde(rename = "expired")]
+    Expired,
+    #[serde(rename = "revoked")]
+    Revoked,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum ListGrantsError {
+    Forbidden,
+    InvalidQuery,
+    Unknown(UnknownDomainError),
+}
 
 #[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 pub struct PutGrantRequest {
@@ -97,6 +193,29 @@ pub enum RevokeGrantError {
 }
 
 #[derive(Debug)]
+pub struct EntitlementsAdminListGrants;
+impl RequestCapability for EntitlementsAdminListGrants {
+    type Request = ListGrantsRequest;
+    type Response = ListGrantsResponse;
+    type DomainError = ListGrantsError;
+    const ID: &'static str = CAPABILITY_ID;
+    const DESCRIPTOR_VERSION: &'static str = DESCRIPTOR_VERSION;
+
+    fn invoke_native(endpoint: &dyn NativeRequestEndpoint, operation: &str, request: Self::Request, context: InvocationContext) -> NativeRequestFuture<Self> {
+        if operation != LIST_GRANTS_OPERATION {
+            return lenso_kernel::invoke_typed_or_erased_native_request::<Self>(endpoint, operation, request, context);
+        }
+        let Some(typed_endpoint) = endpoint
+            .typed_endpoint()
+            .and_then(|endpoint| endpoint.downcast_ref::<EntitlementsAdminRequestEndpoint>())
+        else {
+            return lenso_kernel::invoke_typed_or_erased_native_request::<Self>(endpoint, operation, request, context);
+        };
+        Rc::clone(&typed_endpoint.provider).list_grants(context, request)
+    }
+}
+
+#[derive(Debug)]
 pub struct EntitlementsAdminPutGrant;
 impl RequestCapability for EntitlementsAdminPutGrant {
     type Request = PutGrantRequest;
@@ -139,6 +258,55 @@ impl RequestCapability for EntitlementsAdminRevokeGrant {
             return lenso_kernel::invoke_typed_or_erased_native_request::<Self>(endpoint, operation, request, context);
         };
         Rc::clone(&typed_endpoint.provider).revoke_grant(context, request)
+    }
+}
+
+impl serde::Serialize for ListGrantsError {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeMap;
+        match self {
+            Self::Forbidden => serializer.serialize_str("forbidden"),
+            Self::InvalidQuery => serializer.serialize_str("invalid_query"),
+            Self::Unknown(value) => {
+                let mut map = serializer.serialize_map(Some(1 + usize::from(value.payload.is_some()) + value.extra.len()))?;
+                map.serialize_entry("code", &value.code)?;
+                if let Some(payload) = &value.payload {
+                    map.serialize_entry("payload", payload)?;
+                }
+                for (key, extra) in &value.extra {
+                    map.serialize_entry(key, extra)?;
+                }
+                map.end()
+            },
+        }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for ListGrantsError {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = <serde_json::Value as serde::Deserialize>::deserialize(deserializer)?;
+        match value {
+            serde_json::Value::String(code) => match code.as_str() {
+                "forbidden" => Ok(Self::Forbidden),
+                "invalid_query" => Ok(Self::InvalidQuery),
+                _ => Ok(Self::Unknown(UnknownDomainError { code, payload: None, extra: std::collections::BTreeMap::new() })),
+            },
+            serde_json::Value::Object(mut object) => {
+                let Some(code) = object.remove("code").and_then(|value| value.as_str().map(ToOwned::to_owned)) else {
+                    return Err(serde::de::Error::custom("Domain Error object is missing a string code"));
+                };
+                let payload = object.remove("payload");
+                let extra = object.into_iter().collect::<std::collections::BTreeMap<_, _>>();
+                Ok(Self::Unknown(UnknownDomainError { code, payload, extra }))
+            }
+            other => Err(serde::de::Error::custom(format!("Domain Error must be a string or object, got {other}"))),
+        }
     }
 }
 
@@ -242,6 +410,13 @@ impl<'de> serde::Deserialize<'de> for RevokeGrantError {
     }
 }
 
+pub fn encode_list_grants_request(value: &ListGrantsRequest) -> Result<String, serde_json::Error> { encode_portable_json(value) }
+pub fn decode_list_grants_request(wire: &str) -> Result<ListGrantsRequest, serde_json::Error> { decode_portable_json(wire) }
+pub fn encode_list_grants_response(value: &ListGrantsResponse) -> Result<String, serde_json::Error> { encode_portable_json(value) }
+pub fn decode_list_grants_response(wire: &str) -> Result<ListGrantsResponse, serde_json::Error> { decode_portable_json(wire) }
+pub fn encode_list_grants_error(value: &ListGrantsError) -> Result<String, serde_json::Error> { encode_portable_json(value) }
+pub fn decode_list_grants_error(wire: &str) -> Result<ListGrantsError, serde_json::Error> { decode_portable_json(wire) }
+
 pub fn encode_put_grant_request(value: &PutGrantRequest) -> Result<String, serde_json::Error> { encode_portable_json(value) }
 pub fn decode_put_grant_request(wire: &str) -> Result<PutGrantRequest, serde_json::Error> { decode_portable_json(wire) }
 pub fn encode_put_grant_response(value: &PutGrantResponse) -> Result<String, serde_json::Error> { encode_portable_json(value) }
@@ -255,6 +430,35 @@ pub fn encode_revoke_grant_response(value: &RevokeGrantResponse) -> Result<Strin
 pub fn decode_revoke_grant_response(wire: &str) -> Result<RevokeGrantResponse, serde_json::Error> { decode_portable_json(wire) }
 pub fn encode_revoke_grant_error(value: &RevokeGrantError) -> Result<String, serde_json::Error> { encode_portable_json(value) }
 pub fn decode_revoke_grant_error(wire: &str) -> Result<RevokeGrantError, serde_json::Error> { decode_portable_json(wire) }
+
+#[doc(hidden)]
+pub trait __LensoIntoEntitlementsAdminListGrantsResult {
+    fn __lenso_into_result(self) -> Result<Result<ListGrantsResponse, ListGrantsError>, RuntimeFailure>;
+}
+impl __LensoIntoEntitlementsAdminListGrantsResult for Result<ListGrantsResponse, ListGrantsError> {
+    fn __lenso_into_result(self) -> Result<Result<ListGrantsResponse, ListGrantsError>, RuntimeFailure> { Ok(self) }
+}
+impl __LensoIntoEntitlementsAdminListGrantsResult for Result<Result<ListGrantsResponse, ListGrantsError>, RuntimeFailure> {
+    fn __lenso_into_result(self) -> Result<Result<ListGrantsResponse, ListGrantsError>, RuntimeFailure> { self }
+}
+impl __LensoIntoEntitlementsAdminListGrantsResult for Result<ListGrantsResponse, lenso_plugin_authoring::PluginError<ListGrantsError, RuntimeFailure>> {
+    fn __lenso_into_result(self) -> Result<Result<ListGrantsResponse, ListGrantsError>, RuntimeFailure> {
+        match self {
+            Ok(value) => Ok(Ok(value)),
+            Err(lenso_plugin_authoring::PluginError::Domain(error)) => Ok(Err(error)),
+            Err(lenso_plugin_authoring::PluginError::Runtime(error)) => Err(error),
+        }
+    }
+}
+impl __LensoIntoEntitlementsAdminListGrantsResult for Result<ListGrantsResponse, EntitlementsAdminListGrantsInvocationError> {
+    fn __lenso_into_result(self) -> Result<Result<ListGrantsResponse, ListGrantsError>, RuntimeFailure> {
+        match self {
+            Ok(value) => Ok(Ok(value)),
+            Err(EntitlementsAdminListGrantsInvocationError::Domain(error)) => Ok(Err(error)),
+            Err(EntitlementsAdminListGrantsInvocationError::Runtime(error)) => Err(error),
+        }
+    }
+}
 
 #[doc(hidden)]
 pub trait __LensoIntoEntitlementsAdminPutGrantResult {
@@ -315,6 +519,7 @@ impl __LensoIntoEntitlementsAdminRevokeGrantResult for Result<RevokeGrantRespons
 }
 
 pub trait EntitlementsAdminProvider: fmt::Debug + 'static {
+    fn list_grants(&self, context: InvocationContext, request: ListGrantsRequest) -> NativeRequestFuture<EntitlementsAdminListGrants>;
     fn put_grant(&self, context: InvocationContext, request: PutGrantRequest) -> NativeRequestFuture<EntitlementsAdminPutGrant>;
     fn revoke_grant(&self, context: InvocationContext, request: RevokeGrantRequest) -> NativeRequestFuture<EntitlementsAdminRevokeGrant>;
 }
@@ -325,6 +530,13 @@ macro_rules! __lenso_native_lower_entitlements_admin {
     ($plugin:ty, $support:path) => {
         use $support as __LensoNativeSupportEntitlementsAdmin;
         impl $crate::EntitlementsAdminProvider for $plugin {
+        fn list_grants(&self, context: __LensoNativeSupportEntitlementsAdmin::InvocationContext, request: $crate::ListGrantsRequest) -> __LensoNativeSupportEntitlementsAdmin::NativeRequestFuture<$crate::EntitlementsAdminListGrants> {
+            let plugin = self.clone();
+            ::std::boxed::Box::pin(async move {
+                let result = <$plugin>::list_grants(&plugin, context, request).await;
+                $crate::__LensoIntoEntitlementsAdminListGrantsResult::__lenso_into_result(result)
+            })
+        }
         fn put_grant(&self, context: __LensoNativeSupportEntitlementsAdmin::InvocationContext, request: $crate::PutGrantRequest) -> __LensoNativeSupportEntitlementsAdmin::NativeRequestFuture<$crate::EntitlementsAdminPutGrant> {
             let plugin = self.clone();
             ::std::boxed::Box::pin(async move {
@@ -360,12 +572,26 @@ impl<P: EntitlementsAdminProvider> NativeRequestEndpoint for EntitlementsAdminEn
     fn capability_id(&self) -> &'static str { CAPABILITY_ID }
     fn descriptor_version(&self) -> &'static str { DESCRIPTOR_VERSION }
     fn operations(&self) -> &'static [&'static str] { &[
+        LIST_GRANTS_OPERATION,
         PUT_GRANT_OPERATION,
         REVOKE_GRANT_OPERATION,
     ] }
     fn typed_endpoint(&self) -> Option<&dyn std::any::Any> { Some(&self.request_endpoint) }
     fn invoke(&self, operation: &str, request: Box<dyn std::any::Any>, context: InvocationContext) -> LocalBoxFuture<'static, Result<Result<Box<dyn std::any::Any>, Box<dyn std::any::Any>>, RuntimeFailure>> {
         match operation {
+            LIST_GRANTS_OPERATION => {
+                let Ok(request) = request.downcast::<ListGrantsRequest>() else {
+                    return Box::pin(futures::future::ready(Err(RuntimeFailure::ProtocolViolation { capability: CAPABILITY_ID })));
+                };
+                let invocation = Rc::clone(&self.provider).list_grants(context, *request);
+                Box::pin(async move {
+                    invocation.await.map(|result| {
+                        result
+                            .map(|value| Box::new(value) as Box<dyn std::any::Any>)
+                            .map_err(|error| Box::new(error) as Box<dyn std::any::Any>)
+                    })
+                })
+            },
             PUT_GRANT_OPERATION => {
                 let Ok(request) = request.downcast::<PutGrantRequest>() else {
                     return Box::pin(futures::future::ready(Err(RuntimeFailure::ProtocolViolation { capability: CAPABILITY_ID })));
@@ -429,12 +655,25 @@ macro_rules! __lenso_native_provide_entitlements_admin {
 
 #[derive(Debug)]
 pub struct EntitlementsAdminClient {
+    list_grants: NativeRequestHandle<EntitlementsAdminListGrants>,
     put_grant: NativeRequestHandle<EntitlementsAdminPutGrant>,
     revoke_grant: NativeRequestHandle<EntitlementsAdminRevokeGrant>,
 }
 impl EntitlementsAdminClient {
     pub fn from_dependencies(dependencies: &PluginDependencies) -> Result<Self, RuntimeFailure> {
         <Self as CapabilityClient>::from_dependencies(dependencies)
+    }
+
+    pub async fn list_grants(&self, request: ListGrantsRequest) -> Result<ListGrantsResponse, EntitlementsAdminListGrantsInvocationError> {
+        self.list_grants.invoke(LIST_GRANTS_OPERATION, request).await
+            .map_err(EntitlementsAdminListGrantsInvocationError::Runtime)?
+            .map_err(EntitlementsAdminListGrantsInvocationError::Domain)
+    }
+
+    pub async fn list_grants_with_context(&self, context: InvocationContext, request: ListGrantsRequest) -> Result<ListGrantsResponse, EntitlementsAdminListGrantsInvocationError> {
+        self.list_grants.invoke_with_context(LIST_GRANTS_OPERATION, context, request).await
+            .map_err(EntitlementsAdminListGrantsInvocationError::Runtime)?
+            .map_err(EntitlementsAdminListGrantsInvocationError::Domain)
     }
 
     pub async fn put_grant(&self, request: PutGrantRequest) -> Result<PutGrantResponse, EntitlementsAdminPutGrantInvocationError> {
@@ -471,6 +710,7 @@ impl CapabilityClient for EntitlementsAdminClient {
 
     fn from_dependencies(dependencies: &PluginDependencies) -> Result<Self, RuntimeFailure> {
         Ok(Self {
+            list_grants: dependencies.one::<EntitlementsAdminListGrants>()?,
             put_grant: dependencies.one::<EntitlementsAdminPutGrant>()?,
             revoke_grant: dependencies.one::<EntitlementsAdminRevokeGrant>()?,
         })
@@ -495,6 +735,7 @@ impl CapabilityClientMany for EntitlementsAdminClient {
                 Ok(BoundCapabilityClient::new(
                     binding.provider_instance(),
                     Self {
+                    list_grants: binding.handle().ok_or(RuntimeFailure::Unavailable { capability: CAPABILITY_ID })?.typed::<EntitlementsAdminListGrants>()?,
                     put_grant: binding.handle().ok_or(RuntimeFailure::Unavailable { capability: CAPABILITY_ID })?.typed::<EntitlementsAdminPutGrant>()?,
                     revoke_grant: binding.handle().ok_or(RuntimeFailure::Unavailable { capability: CAPABILITY_ID })?.typed::<EntitlementsAdminRevokeGrant>()?,
                     },
@@ -504,6 +745,11 @@ impl CapabilityClientMany for EntitlementsAdminClient {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum EntitlementsAdminListGrantsInvocationError {
+    Domain(ListGrantsError),
+    Runtime(RuntimeFailure),
+}
 #[derive(Clone, Debug, PartialEq)]
 pub enum EntitlementsAdminPutGrantInvocationError {
     Domain(PutGrantError),

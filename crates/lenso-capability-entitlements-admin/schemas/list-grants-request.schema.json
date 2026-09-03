@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "scope_kind",
+    "scope_id",
+    "subject",
+    "feature",
+    "status",
+    "limit",
+    "cursor"
+  ],
+  "properties": {
+    "scope_kind": {
+      "type": "string"
+    },
+    "scope_id": {
+      "type": "string"
+    },
+    "subject": {
+      "$ref": "#/$defs/Nullable_string"
+    },
+    "feature": {
+      "$ref": "#/$defs/Nullable_string"
+    },
+    "status": {
+      "$ref": "#/$defs/ListGrantsRequestStatus"
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 200
+    },
+    "cursor": {
+      "$ref": "#/$defs/Nullable_string"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "ListGrantsRequestStatus": {
+      "type": "string",
+      "enum": ["active", "expired", "revoked", "all"]
+    },
+    "Nullable_string": {
+      "type": ["string", "null"]
+    }
+  },
+  "title": "ListGrantsRequest"
+}

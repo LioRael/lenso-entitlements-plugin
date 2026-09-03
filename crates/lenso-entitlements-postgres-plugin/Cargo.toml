@@ -1,6 +1,6 @@
 [package]
 name = "lenso-entitlements-postgres-plugin"
-version = "0.1.0"
+version = "0.2.0"
 edition.workspace = true
 license.workspace = true
 publish.workspace = true
@@ -15,7 +15,7 @@ root-slot = "entitlements"
 getrandom.workspace = true
 lenso.workspace = true
 lenso-capability-entitlements = { path = "../lenso-capability-entitlements", version = "0.1.0" }
-lenso-capability-entitlements-admin = { path = "../lenso-capability-entitlements-admin", version = "0.1.0" }
+lenso-capability-entitlements-admin = { path = "../lenso-capability-entitlements-admin", version = "0.2.0" }
 lenso-capability-secrets.workspace = true
 lenso-kernel.workspace = true
 lenso-postgres-kit.workspace = true
